@@ -46,21 +46,31 @@ class TestDockerfileParser(object):
         assert spec_version == module_version
         assert setup_py_version == module_version
 
-    def test_dockerfileparser(self, dfparser):
+    def test_dockerfileparser(self, dfparser, tmpdir):
         df_content = dedent("""\
             FROM fedora
-            CMD {0}""".format(NON_ASCII))
-        df_lines = ["FROM fedora\n", "CMD {0}".format(NON_ASCII)]
+            LABEL label={0}""".format(NON_ASCII))
+        df_lines = ["FROM fedora\n", "LABEL label={0}".format(NON_ASCII)]
 
         dfparser.content = ""
         dfparser.content = df_content
         assert dfparser.content == df_content
         assert dfparser.lines == df_lines
+        assert [isinstance(line, six.text_type) for line in dfparser.lines]
 
         dfparser.content = ""
         dfparser.lines = df_lines
         assert dfparser.content == df_content
         assert dfparser.lines == df_lines
+        assert [isinstance(line, six.text_type) for line in dfparser.lines]
+
+        filename = os.path.join(str(tmpdir), 'Dockerfile')
+        with open(filename, 'wb') as fp:
+            fp.write(df_content.encode('utf-8'))
+        dfparser = DockerfileParser(str(tmpdir))
+        assert dfparser.content == df_content
+        assert dfparser.lines == df_lines
+        assert [isinstance(line, six.text_type) for line in dfparser.lines]
 
     def test_constructor_cache(self, tmpdir):
         tmpdir_path = str(tmpdir.realpath())
